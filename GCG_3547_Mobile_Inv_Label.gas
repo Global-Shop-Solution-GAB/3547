@@ -1,0 +1,164 @@
+Program.Sub.ScreenSU.Start
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+Variable.Global.iLogId.Declare(Long,0)
+Variable.Global.iRunID.Declare(Long,0)
+
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+F.Intrinsic.Control.SetErrorHandler("Main_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String)
+
+
+'good be any hook really but it should be 39002, but others could use this.
+Function.Intrinsic.Control.CallSub(Getdata)
+Function.Intrinsic.Control.CallSub(Unload)
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("Main_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_3547_Mobile_Inv_Label.gas",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	Function.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.CallSub(Unload)
+Function.Intrinsic.Control.EndIf
+
+Program.Sub.Main.End
+
+Program.Sub.Unload.Start
+F.Intrinsic.Control.SetErrorHandler("Unload_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String)
+
+
+F.Intrinsic.Control.end
+
+
+
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("Unload_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_3547_Mobile_Inv_Label.gas",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	Function.Intrinsic.Control.End
+Function.Intrinsic.Control.EndIf
+
+
+Program.Sub.Unload.End
+
+Program.Sub.GetData.Start
+F.Intrinsic.Control.SetErrorHandler("GetData_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String)
+V.Local.sSQL.Declare(String)
+V.Local.sParam.Declare(String)
+V.Local.iCopies.Declare(Long)
+V.Local.sPrinter.Declare(String)
+V.Local.iRPTID.Declare(Long)
+
+
+F.Global.BI.GetRunID(V.Global.iRunID)
+'get rpt id
+F.Global.BI.GetIDFromName("GCG_3547_Mobile_Inv_Label.rpt",True,V.Local.iRptID)
+
+F.Global.BI.StartLogging(V.Global.iRunID,V.Local.iRptId,0,"GCG_3547_Mobile_Inv_Label.rpt",V.Global.iLogId)
+
+F.Global.Mobile.GetCustomLine(v.Passed.Data-TRANSID,v.Local.sParam)
+
+F.Intrinsic.String.Split(V.Local.sParam,"*!*",V.Local.sParaM)
+
+'1 Has Part
+'2 has rev
+'3 has qty inventory
+'4 has printer qty for label copy number
+V.Local.iCopies.Set(v.Local.sParam(4))
+
+F.Intrinsic.String.Build("{0}*!*{1}*!*{2}",V.Local.sParam(1),V.Local.sParam(2),V.Local.sParam(3),V.Local.sParam)
+
+Function.Global.Mobile.GetCustomPrinter(v.Passed.data-transid,v.Local.sPrinter)
+F.Intrinsic.String.Split(V.Local.sPrinter,"*!*",V.Local.sPrinter)
+'grab the second printers
+'lets just grab element 1.
+F.Intrinsic.String.Split(V.Local.sPrinter(1),":",V.Local.sPrinter)
+
+F.Global.Mobile.GetPrinterNameFromID(v.Local.sPrinter(1),v.Local.sPrinter)
+
+
+Function.Intrinsic.Control.CallSub(callbi,"RPTID",v.Local.sRPTID,"Param",v.Local.sParam,"iCopies",v.Local.iCopies,"Printer",v.Local.sPrinter)
+
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("GetData_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_3547_Mobile_Inv_Label.gas",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	Function.Intrinsic.Control.CallSub(Unload)
+Function.Intrinsic.Control.EndIf
+
+
+Program.Sub.GetData.End
+
+Program.Sub.CallBI.Start
+F.Intrinsic.Control.SetErrorHandler("CallBI_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String)
+V.Local.sParam.Declare(String)
+V.Local.sPNames.Declare(String)
+V.Local.iRptID.Declare(Long)
+V.Local.sPrinter.Declare(String)
+
+
+V.Local.sParam.Set(V.Args.Param)
+V.Local.iRptID.Set(V.Args.RPTID)
+V.Local.sPrinter.Set(V.Args.Printer)
+
+F.Global.BI.StopLogging(V.Global.iLogId)
+
+V.Local.sPNames.Set("Part*!*Rev*!*QTY")
+
+'run report preproc.
+F.Global.BI.RunReportPreProcessor(V.Global.iRunID,V.Global.iLogId,V.Local.sPNames,V.Local.sParam,"GCG_3547_Mobile_Inv_Label.rpt",8,True,"",V.Args.icopies,V.Local.sPrinter,-1,"","",V.Global.iLogId)
+
+'if we made it here we can set the results of the trans as successful, why not?
+F.Global.Mobile.SetCustomResult(v.Caller.CompanyCode,v.Passed.Data-TransID,"Printed label")
+
+
+
+
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("CallBI_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_3547_Mobile_Inv_Label.gas",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+Function.Intrinsic.Control.EndIf
+
+
+Program.Sub.CallBI.End
+
+Program.Sub.Comments.Start
+${$0$}$$}$TRT$}$1/20/2016 11:16:06 AM
+${$1$}$$}$$}$0$}$39001$}$$}$1/20/2016 11:16:06 AM$}$GS MObile custom  trans
+${$3$}$0$}$$}$0$}$-1$}$$}$12:00:00 AM$}$Quote 7415
+coder TRT
+1/20/2016
+
+
+1. GAB Program will run from Custom Inventory Transaction, it will accept Part, Rev, Quantity, # of Copies.
+
+2. When user submits, program will pass information to call crystal report label, already designed by user.
+
+*GSS Developer will need Custom Transaction ID and screenshots of transaction from GS Mobile showing the name of values(setup from Options) and how they are entered on the screen(from Internet Browser).
+Program.Sub.Comments.End
+
